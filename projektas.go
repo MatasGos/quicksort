@@ -103,7 +103,7 @@ func mainThread(data []Number, threadCount int) {
 	for i := 0; i < threadCount; i++ {
 		go workerThread(i, send, receive)
 	}
-	fmt.Println("Pradiniai duomenys - ", results)
+	//fmt.Println("Pradiniai duomenys - ", results)
 	// pertvarkymo pirma iteracija
 	doneCount := 0
 	doneLimit := len(data)
@@ -128,7 +128,7 @@ func mainThread(data []Number, threadCount int) {
 		resultArray.reorganise(temp)
 		//resultArray.insert(temp)
 	}
-	fmt.Println("rezultatai - ", results)
+	//fmt.Println("rezultatai - ", results)
 	close(send)
 }
 
@@ -171,13 +171,14 @@ func main() {
 	// data := readJSON(fmt.Sprintf(datafile))
 	// mainThread(data, workerCount)
 
-	speedtest(100, 32, []int{100, 1000, 10000})
+	speedtest(100, 16, []int{200000, 400000, 600000, 800000, 1000000})
 
 }
 
 func speedtest(times int, threadLimit int, dataSets []int) {
 	f, _ := os.Create("./results.csv")
 	w := bufio.NewWriter(f)
+	results := make([]int64, len(dataSets))
 	for i := 0; i < len(dataSets); i++ {
 		createRandomJSON(dataSets[i], i)
 		w.WriteString(",")
@@ -197,8 +198,14 @@ func speedtest(times int, threadLimit int, dataSets []int) {
 			time := time.Since(start).Nanoseconds()
 			avgTime := time / int64(times)
 			fmt.Print("duomenu skaicius -", dataSets[k], ">>>>>>")
-			fmt.Println("laikas - ", time, "padalintas laikas - ", avgTime)
+			fmt.Print(" padalintas laikas - ", avgTime)
 			w.WriteString(fmt.Sprintf("%d,", avgTime))
+
+			//procentu tobulejimo skaiciavimas
+			temp := float64(results[k] - avgTime)
+			improvement := float64(temp) / float64(results[k])
+			fmt.Println(">>>>>>", improvement*100)
+			results[k] = int64(avgTime)
 		}
 		w.WriteString("\n")
 	}
