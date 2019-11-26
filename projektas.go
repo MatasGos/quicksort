@@ -1,18 +1,26 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
+	"os"
+	"time"
 )
 
-const datafile = "repeating_small.json"
-const workerCount = 4
+const datafile = "file.json"
+const workerCount = 2
+const valuesCount = 1000000
 
 func readJSON(path string) []Number {
 	file, _ := ioutil.ReadFile(path)
 	var data []Number
-	_ = json.Unmarshal([]byte(file), &data)
+	err := json.Unmarshal([]byte(file), &data)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
 	return data
 }
 
@@ -86,7 +94,7 @@ type ReceiveParameter struct {
 func mainThread(data []Number) {
 	// deklaruoti kanalai
 	send := make(chan SendParameter)
-	receive := make(chan ReceiveParameter, 1000)
+	receive := make(chan ReceiveParameter, len(data))
 	results := append([]Number(nil), data...)
 	resultArray := Array{Numbers: results}
 
@@ -120,7 +128,7 @@ func mainThread(data []Number) {
 		resultArray.reorganise(temp)
 		//resultArray.insert(temp)
 	}
-	fmt.Println("rezultatai - ", results)
+	//fmt.Println("rezultatai - ", results)
 	close(send)
 }
 
@@ -160,9 +168,41 @@ func workerThread(id int, receive chan SendParameter, send chan ReceiveParameter
 }
 
 func main() {
+	createRandomJSON()
 	data := readJSON(fmt.Sprintf(datafile))
 
-	mainThread(data)
+	//mainThread(data)
 
-	_ = data
+	speedtest(data, 10)
+
+}
+
+func speedtest(data []Number, times int) {
+	total := time.Now()
+	for i := 0; i < times; i++ {
+		copy := append([]Number(nil), data...)
+		//fmt.Println("pradiniai - ", copy)
+		start := time.Now()
+		mainThread(copy)
+		fmt.Println(time.Since(start))
+	}
+	fmt.Println("total - ", time.Since(total))
+}
+
+func createRandomJSON() {
+	f, _ := os.Create("./file.json")
+	w := bufio.NewWriter(f)
+	w.WriteString("[\n")
+	for i := 0; i < valuesCount; i++ {
+		val := (rand.Intn(valuesCount))
+		mapD := map[string]int{"Number": val}
+		mapB, _ := json.Marshal(mapD)
+		w.WriteString(string(mapB))
+		if i < valuesCount-1 {
+			w.WriteString(",")
+		}
+		w.WriteString("\n")
+	}
+	w.WriteString("\n]")
+	w.Flush()
 }
