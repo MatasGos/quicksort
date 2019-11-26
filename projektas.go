@@ -12,7 +12,7 @@ import (
 
 const datafile = "file.json"
 const workerCount = 2
-const valuesCount = 1000000
+const valuesCount = 10
 
 func readJSON(path string) []Number {
 	file, _ := ioutil.ReadFile(path)
@@ -91,7 +91,7 @@ type ReceiveParameter struct {
 }
 
 // pagrindine gija
-func mainThread(data []Number) {
+func mainThread(data []Number, threadCount int) {
 	// deklaruoti kanalai
 	send := make(chan SendParameter)
 	receive := make(chan ReceiveParameter, len(data))
@@ -99,7 +99,7 @@ func mainThread(data []Number) {
 	resultArray := Array{Numbers: results}
 
 	// paleidžiamos gijos
-	for i := 0; i < workerCount; i++ {
+	for i := 0; i < threadCount; i++ {
 		go workerThread(i, send, receive)
 	}
 
@@ -125,8 +125,8 @@ func mainThread(data []Number) {
 			send <- SendParameter{arr: temp.High, pos: temp.pos + temp.Low.Count + temp.count}
 		}
 		doneCount += temp.count
-		resultArray.reorganise(temp)
-		//resultArray.insert(temp)
+		//resultArray.reorganise(temp)
+		resultArray.insert(temp)
 	}
 	//fmt.Println("rezultatai - ", results)
 	close(send)
@@ -168,37 +168,59 @@ func workerThread(id int, receive chan SendParameter, send chan ReceiveParameter
 }
 
 func main() {
-	createRandomJSON()
-	data := readJSON(fmt.Sprintf(datafile))
+	// createRandomJSON(valuesCount)
+	// data := readJSON(fmt.Sprintf(datafile))
+	// start := time.Now()
+	// mainThread(data, workerCount)
+	// fmt.Println(time.Since(start))
 
-	//mainThread(data)
-
-	speedtest(data, 10)
+	speedtest(10, 8, []int{10, 100, 1000, 10000})
+	//createRandomJSON(1000000)
 
 }
 
-func speedtest(data []Number, times int) {
-	total := time.Now()
-	for i := 0; i < times; i++ {
-		copy := append([]Number(nil), data...)
-		//fmt.Println("pradiniai - ", copy)
-		start := time.Now()
-		mainThread(copy)
-		fmt.Println(time.Since(start))
+func speedtest(times int, threadLimit int, dataSets []int) {
+	f, _ := os.Create("./results.csv")
+	w := bufio.NewWriter(f)
+	for _, dataSize := range dataSets {
+		w.WriteString(",")
+		w.WriteString(fmt.Sprintf("%d", dataSize))
 	}
-	fmt.Println("total - ", time.Since(total))
+	w.WriteString("\n")
+	for j := 1; j <= threadLimit; j *= 2 {
+		w.WriteString(fmt.Sprintf("%d gija,", j))
+		for _, dataSize := range dataSets {
+			createRandomJSON(dataSize)
+			data := readJSON(fmt.Sprintf("./file.json"))
+			total := time.Now().Sub(time.Now()).Nanoseconds() // should return empty time variable
+			fmt.Println(total)
+			for i := 0; i < times; i++ {
+				copy := append([]Number(nil), data...)
+				start := time.Now()
+				mainThread(copy, j)
+				total += time.Since(start).Nanoseconds()
+			}
+			avgTime := total / int64(times)
+			fmt.Print("duomenu skaicius -", dataSize, " giju kiekis - ", j, " >>>>>>")
+			fmt.Println("laikas - ", total, "padalintas laikas - ", avgTime)
+			w.WriteString(fmt.Sprintf("%d,", avgTime))
+		}
+		w.WriteString("\n")
+		fmt.Println("================")
+	}
+	w.Flush()
 }
 
-func createRandomJSON() {
+func createRandomJSON(count int) {
 	f, _ := os.Create("./file.json")
 	w := bufio.NewWriter(f)
 	w.WriteString("[\n")
-	for i := 0; i < valuesCount; i++ {
-		val := (rand.Intn(valuesCount))
+	for i := 0; i < count; i++ {
+		val := (rand.Intn(count))
 		mapD := map[string]int{"Number": val}
 		mapB, _ := json.Marshal(mapD)
 		w.WriteString(string(mapB))
-		if i < valuesCount-1 {
+		if i < count-1 {
 			w.WriteString(",")
 		}
 		w.WriteString("\n")
