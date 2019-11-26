@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-const datafile = "file.json"
-const workerCount = 2
+const datafile = "dataSet1.json"
+const workerCount = 1
 const valuesCount = 10
 
 func readJSON(path string) []Number {
@@ -103,8 +103,8 @@ func mainThread(data []Number, threadCount int) {
 	for i := 0; i < threadCount; i++ {
 		go workerThread(i, send, receive)
 	}
-
-	// pirma iteracija
+	fmt.Println("Pradiniai duomenys - ", results)
+	// pertvarkymo pirma iteracija
 	doneCount := 0
 	doneLimit := len(data)
 	send <- SendParameter{arr: Array{Numbers: results, Count: len(results)}, pos: 0}
@@ -128,7 +128,7 @@ func mainThread(data []Number, threadCount int) {
 		resultArray.reorganise(temp)
 		//resultArray.insert(temp)
 	}
-	//fmt.Println("rezultatai - ", results)
+	fmt.Println("rezultatai - ", results)
 	close(send)
 }
 
@@ -168,15 +168,10 @@ func workerThread(id int, receive chan SendParameter, send chan ReceiveParameter
 }
 
 func main() {
-	// createRandomJSON(valuesCount)
 	// data := readJSON(fmt.Sprintf(datafile))
-	// start := time.Now()
 	// mainThread(data, workerCount)
-	// fmt.Println(time.Since(start))
 
-	speedtest(10, 32, []int{100, 1000, 10000})
-
-	//createRandomJSON(100, 0)
+	speedtest(100, 32, []int{100, 1000, 10000})
 
 }
 
