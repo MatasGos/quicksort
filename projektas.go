@@ -95,7 +95,7 @@ type ReceiveParameter struct {
 func mainThread(data []Number, threadCount int) {
 	// deklaruoti kanalai
 	send := make(chan SendParameter, len(data))
-	receive := make(chan ReceiveParameter, len(data))
+	receive := make(chan ReceiveParameter)
 	results := append([]Number(nil), data...)
 	resultArray := Array{Numbers: results}
 
@@ -125,7 +125,6 @@ func mainThread(data []Number, threadCount int) {
 			send <- SendParameter{arr: temp.High, pos: temp.pos + temp.Low.Count + temp.count}
 		}
 		doneCount += temp.count
-		//write <- temp
 		resultArray.reorganise(temp)
 		//resultArray.insert(temp)
 	}
@@ -175,7 +174,7 @@ func main() {
 	// mainThread(data, workerCount)
 	// fmt.Println(time.Since(start))
 
-	speedtest(10, 8, []int{10, 100, 1000, 10000, 100000})
+	speedtest(10, 32, []int{100, 1000, 10000})
 
 	//createRandomJSON(100, 0)
 
@@ -189,28 +188,21 @@ func speedtest(times int, threadLimit int, dataSets []int) {
 		w.WriteString(",")
 		w.WriteString(fmt.Sprintf("%d", dataSets[i]))
 	}
-	// for _, dataSize := range dataSets {
-	// 	createRandomJSON(dataSize)
-	// 	w.WriteString(",")
-	// 	w.WriteString(fmt.Sprintf("%d", dataSize))
-	// }
 	w.WriteString("\n")
 	for j := 1; j <= threadLimit; j *= 2 {
 		w.WriteString(fmt.Sprintf("%d gija,", j))
 		fmt.Println("================ giju skaicius - ", j)
 		for k := 0; k < len(dataSets); k++ {
-			//createRandomJSON(dataSize)
 			data := readJSON(fmt.Sprintf("./gen/file%d.json", k))
-			total := time.Now().Sub(time.Now()).Nanoseconds() // should return empty time variable
+			start := time.Now()
 			for i := 0; i < times; i++ {
 				copy := append([]Number(nil), data...)
-				start := time.Now()
 				mainThread(copy, j)
-				total += time.Since(start).Nanoseconds()
 			}
-			avgTime := total / int64(times)
+			time := time.Since(start).Nanoseconds()
+			avgTime := time / int64(times)
 			fmt.Print("duomenu skaicius -", dataSets[k], ">>>>>>")
-			fmt.Println("laikas - ", total, "padalintas laikas - ", avgTime)
+			fmt.Println("laikas - ", time, "padalintas laikas - ", avgTime)
 			w.WriteString(fmt.Sprintf("%d,", avgTime))
 		}
 		w.WriteString("\n")
@@ -220,7 +212,6 @@ func speedtest(times int, threadLimit int, dataSets []int) {
 
 func createRandomJSON(count int, i int) {
 	f, _ := os.Create(fmt.Sprintf("./gen/file%d.json", i))
-	//f, _ := os.Create("./file.json")
 	w := bufio.NewWriter(f)
 	w.WriteString("[\n")
 	for i := 0; i < count; i++ {
