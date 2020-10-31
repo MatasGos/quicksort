@@ -1,2 +1,2 @@
 # Quicksort
- Quicksort realised using channels in golang
+Concurrent quicksort realised using channels in golang
